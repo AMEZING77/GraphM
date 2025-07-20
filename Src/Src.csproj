@@ -1,0 +1,17 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EditorConfigFiles Remove="C:\300-Study\301-Work\GraphM\Src\.editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="C:\300-Study\301-Work\GraphM\Src\.editorconfig" />
+  </ItemGroup>
+
+</Project>
