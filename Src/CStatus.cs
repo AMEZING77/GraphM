@@ -2,43 +2,36 @@
 
 namespace Src;
 
-public class CStatus : EventArgs
+public class CStatus
 {
     public static readonly CStatus OK = new CStatus(ErrorInfoArgs.Empty);
 
     private ErrorInfoArgs errorInfoArgs = ErrorInfoArgs.Empty;
 
-    public CStatus()
-    {
-
-    }
+    public CStatus() { }
 
     public CStatus(ErrorInfoArgs args)
     {
         errorInfoArgs = args;
     }
 
-    public bool IsOk() => string.IsNullOrEmpty(errorInfoArgs?.ErrorCode);
+    public bool IsOk() => errorInfoArgs?.ErrorCode?.IsOk ?? true;
 
-    public bool IsError() => !IsOk();
+    public bool IsWarningOrInfo() => errorInfoArgs?.ErrorCode?.IsWarningOrInfo ?? true;
 
-    private CStatus AddAssign(CStatus cur)
+    public bool IsError() => errorInfoArgs?.ErrorCode?.IsError ?? false;
+
+    private CStatus AddAssign(CStatus other)
     {
-        // 如果当前状态已经有错误信息，直接返回当前状态
-        if (!IsOk() || cur.IsOk())
-        {
-            return this;
-        }
-        // 如果当前状态没有错误信息，但传入的状态有错误信息，则更新当前状态
-        errorInfoArgs = cur.errorInfoArgs;
-        return this;
+        if (IsError()) return this;
+        if (other.IsError()) return other;
+        return this; // 双方都OK时返回任意
     }
 
     public static CStatus operator +(CStatus a, CStatus b)
     {
         return a.AddAssign(b);
     }
-
 
 }
 
@@ -48,18 +41,21 @@ public class ErrorInfoArgs : EventArgs
 
     private ErrorInfoArgs()
     {
-        ErrorCode = string.Empty;
+        ErrorCode = new ErrorCode();
     }
 
-    public ErrorInfoArgs(string errorCode, string? languageCode = "zh", string? message = "")
+    public ErrorInfoArgs(ErrorCode errorCode, string? message = "", string? languageCode = "zh")
     {
         ErrorCode = errorCode ?? throw new ArgumentNullException(nameof(errorCode));
 
-        AddMessage(languageCode, message);
+        AddMessage(message, languageCode);
     }
 
-    public string ErrorCode { get; private set; } = string.Empty;
+    public ErrorCode ErrorCode { get; private set; } = new();
 
+    /// <summary>
+    /// Dic to store langTag and message pairs.
+    /// </summary>
     private readonly Dictionary<string, string> _messages = Lang.GetAllSupportedLanguages()
         .ToDictionary(lang => lang, lang => string.Empty);
 
@@ -74,9 +70,8 @@ public class ErrorInfoArgs : EventArgs
         if (!Lang.IsSupportedLanguage(languageCode, out var normalized))
             throw new ArgumentNullException($"UnSupportedLanguage: {languageCode} \t message: {message}");
 
-        _messages.TryAdd(normalized, message);
+        _messages[normalized] = message;
     }
-
 
     /// <summary>
     /// 获取指定语言的错误消息，如果没有找到则返回默认中文（有的话），或返回外部输入的默认消息。
@@ -94,7 +89,22 @@ public class ErrorInfoArgs : EventArgs
         return _messages.Values.FirstOrDefault() ?? defaultMessage;
     }
 
+}
 
+
+public record ErrorCode(string strErrorCode = "DefaultErrorCode", ErrorCodeType ErrorCodeType = ErrorCodeType.Ok)
+{
+    public bool IsOk => ErrorCodeType == ErrorCodeType.Ok;
+    public bool IsWarningOrInfo => ErrorCodeType == ErrorCodeType.Warning || ErrorCodeType == ErrorCodeType.Info;
+    public bool IsError => ErrorCodeType == ErrorCodeType.Error;
+}
+
+public enum ErrorCodeType
+{
+    Ok = 0,
+    Info = 1,
+    Warning = 2,
+    Error = 3,
 }
 
 
