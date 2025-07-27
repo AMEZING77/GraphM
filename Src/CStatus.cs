@@ -21,7 +21,7 @@ public class CStatus
 
     public bool IsError() => errorInfoArgs?.ErrorCode?.IsError ?? false;
 
-    private CStatus AddAssign(CStatus other)
+    private CStatus Combine(CStatus other)
     {
         if (IsError()) return this;
         if (other.IsError()) return other;
@@ -30,7 +30,7 @@ public class CStatus
 
     public static CStatus operator +(CStatus a, CStatus b)
     {
-        return a.AddAssign(b);
+        return a.Combine(b);
     }
 
 }
@@ -67,7 +67,8 @@ public class ErrorInfoArgs : EventArgs
     /// <exception cref="ArgumentException">不支持语言</exception>
     public void AddMessage(string message, string languageCode = "zh")
     {
-        if (!Lang.IsSupportedLanguage(languageCode, out var normalized))
+        var (bIsSupported, normalized) = Lang.IsSupportedLanguage(languageCode);
+        if (!bIsSupported)
             throw new ArgumentNullException($"UnSupportedLanguage: {languageCode} \t message: {message}");
 
         _messages[normalized] = message;
@@ -94,6 +95,9 @@ public class ErrorInfoArgs : EventArgs
 
 public record ErrorCode(string strErrorCode = "DefaultErrorCode", ErrorCodeType ErrorCodeType = ErrorCodeType.Ok)
 {
+    /// <summary>
+    /// 返回默认OK值，允许继续执行
+    /// </summary>
     public bool IsOk => ErrorCodeType == ErrorCodeType.Ok;
     public bool IsWarningOrInfo => ErrorCodeType == ErrorCodeType.Warning || ErrorCodeType == ErrorCodeType.Info;
     public bool IsError => ErrorCodeType == ErrorCodeType.Error;
